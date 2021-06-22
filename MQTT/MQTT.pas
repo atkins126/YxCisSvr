@@ -359,7 +359,7 @@ begin
   if not Assigned(MQ) then
     MQ := TMQTTClient.Create;
   try
-    FileName := ExtractFileDir(ParamStr(0)) + '\YxCisSvr.ini';
+    FileName := ChangeFileExt(ParamStr(0), '.ini');
     if not FileExists(FileName) then
       Exit;
     AINI := TIniFile.Create(FileName);

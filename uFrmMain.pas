@@ -6,12 +6,12 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, AppEvnts, StdCtrls, HTTPApp, System.IniFiles, Winapi.ShellAPI,
   SynWebServer, Vcl.ExtCtrls, Vcl.Menus, uDataYxCisSvr, Qlog, uEncry, UpubFun,
-  Vcl.Buttons, uFrmSvrConfig, Registry;
+  Vcl.Buttons, uFrmSvrConfig, Registry, FireDAC.Stan.Intf, FireDAC.Stan.Option,
+  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Stan.Def,
+  FireDAC.Phys, FireDAC.Comp.Client, FireDAC.Phys.Intf;
 
 const
   WM_BARICON = WM_USER + 200;
-  //WM_LOG = WM_USER + 201;
-  //WM_VIEWCIS = WM_USER + 202;
   WM_HTTPINFO = WM_USER + 203;
   WM_HTTPCOUNT = WM_USER + 204;
 
@@ -32,6 +32,7 @@ type
     btnStart: TBitBtn;
     btnStop: TBitBtn;
     tmr2: TTimer;
+    Mag1: TFDManager;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnStartClick(Sender: TObject);
@@ -44,10 +45,6 @@ type
     procedure tmr1Timer(Sender: TObject);
     procedure tmr2Timer(Sender: TObject);
   private
-    //log: TSynLog;
-    //日志临界区
-    //FSection: TRTLCriticalSection;
-    //logList:TStringList;
     //是否开启接口日志
     BDEBUG: Boolean;
     //日志文件分页大小
@@ -55,7 +52,7 @@ type
     //服务接收到的请求数量、成功数、失败数、工作总线程数、当前工作线程数
     IRevcive, Ycount, Ncount, IWeb, IWebActice: Integer;
     //firedac连接池
-    // oParams: TStrings;
+    oParams: TStrings;
     //系统托盘
     lpData: TNotifyIcondataA;
     //当前是否开启服务
@@ -85,7 +82,7 @@ type
     //服务线程数
     procedure MSG_GetHTTPCount(var message: TMessage); message WM_HTTPCOUNT;
     //设置连接池
-    //procedure SetDACManager;
+    procedure SetDACManager;
     //使用工作集引擎来写日志 //已弃用，日志使用Qlog处理
     //代码源自：https://github.com/yangyxd/YxdWorker
     //procedure WriteLog;
@@ -100,66 +97,46 @@ var
 implementation
 
 {$R *.dfm}
-//procedure TMainForm.SetDACManager;
-//var
-//  DBServer,DataBase,UserName,PassWord:string;
-//begin
-//   //读取数据库配置
-//    DBServer := DeCode(AINI.ReadString('DB', 'Server', ''));
-//    DataBase := DeCode(AINI.ReadString('DB', 'DataBase', ''));
-//    UserName := DeCode(AINI.ReadString('DB', 'UserName', ''));
-//    PassWord := DeCode(AINI.ReadString('DB', 'PassWord', ''));
-//    //*****初始化*****
-//    oParams := TStringList.Create;
-//    //********* 连接池
-//    oParams.Add('DriverID=MSSQL');
-//    oParams.Add('CharacterSet=utf8');
-//    oParams.Add('Server='+DBServer);
-//    oParams.Add('Port=1433');
-//    oParams.Add('Database='+DataBase);
-//    oParams.Add('User_Name='+UserName);
-//    oParams.Add('Password='+PassWord);
-//    oParams.Add('LoginTimeout=3');
-//    oParams.add('ResourceOptions.CmdExecTimeout=3');
-//    //解决查询只返回50条数据问题
-//    oParams.add('FetchOptions.Mode=fmAll');
-//    //解决！，&等字符插入数据库时丢失
-//    oParams.add('ResourceOptions.MacroCreate=False');
-//    oParams.add('ResourceOptions.MacroExpand=False');
-//    //  毫秒
-//    oParams.Add('POOL_CleanupTimeout=36000');
-//    //  毫秒
-//    oParams.Add('POOL_ExpireTimeout=600000');
-//    //最多连接数
-//    oParams.Add('POOL_MaximumItems=60');
-//    oParams.Add('Pooled=True');
-//    //*******
-//    Mag1.Close;
-//    Mag1.AddConnectionDef('MSSQL_Pooled','MSSQL',oParams);
-//    Mag1.Active := True;
-//
-//end;
+procedure TMainForm.SetDACManager;
+var
+  DBServer,DataBase,UserName,PassWord:string;
+begin
+    //读取数据库配置
+    DBServer := DeCode(AINI.ReadString('DB', 'Server', ''));
+    DataBase := DeCode(AINI.ReadString('DB', 'DataBase', ''));
+    UserName := DeCode(AINI.ReadString('DB', 'UserName', ''));
+    PassWord := DeCode(AINI.ReadString('DB', 'PassWord', ''));
+    //*****初始化*****
+    oParams := TStringList.Create;
+    //********* 连接池
+    oParams.Add('DriverID=MSSQL');
+    oParams.Add('CharacterSet=utf8');
+    oParams.Add('Server='+DBServer);
+    oParams.Add('Port=1433');
+    oParams.Add('Database='+DataBase);
+    oParams.Add('User_Name='+UserName);
+    oParams.Add('Password='+PassWord);
+    oParams.Add('LoginTimeout=3');
+    //解决查询只返回50条数据问题
+    oParams.add('FetchOptions.Mode=fmAll');
+    //解决！，&等字符插入数据库时丢失
+    oParams.add('ResourceOptions.MacroCreate=False');
+    oParams.add('ResourceOptions.MacroExpand=False');
+    //  毫秒
+    oParams.Add('POOL_CleanupTimeout=36000');
+    //  毫秒
+    oParams.Add('POOL_ExpireTimeout=600000');
+    //最多连接数
+    oParams.Add('POOL_MaximumItems='+inttostr(AINI.ReadInteger('YxCisSvr', 'Pools', 32)));
+    oParams.Add('Pooled=True');
+    //*******
+    Mag1.Close;
+    Mag1.AddConnectionDef('MSSQL_Pooled','MSSQL',oParams);
+    Mag1.Active := True;
+end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  //检查是否注册过接口程序
-  if ParamStr(2) <> 'RegisterY*********' then
-  begin
-    if not CheckCPUID then
-    begin
-      MessageBox(Application.Handle, '服务未注册！请安装相应运行环境！', '错误', MB_ICONERROR);
-      Application.Terminate;
-    end;
-  end
-  else if ParamStr(2) = 'RegisterY*********' then
-  begin
-    if not RegisterCPUID then
-      MessageBox(Application.Handle, '运行环境安装失败！请重试！', '错误', MB_ICONERROR)
-    else
-      MessageBox(Application.Handle, '运行环境安装成功！请重启程序！', '提示', MB_ICONASTERISK
-        and MB_ICONINFORMATION);
-    Application.Terminate;
-  end;
   //获取程序开始运行时刻
   StartRunTime := GetTickCount64;
   IRevcive := 0;
@@ -167,9 +144,7 @@ begin
   NCount := 0;
   IWeb := 0;
   IWebActice := 0;
-  //logList := TStringList.Create;
-  //InitializeCriticalSection(FSection);
-  AINI := TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'YxCisSvr.ini');
+  AINI := TIniFile.Create(ChangeFileExt(ParamStr(0), '.ini'));
   BDEBUG := AINI.ReadBool('YxCisSvr', 'DEBUG', False);
   LogSize := AINI.ReadInteger('YxCisSvr', 'LogSize', 10);
   //程序系统菜单添加菜单选项
@@ -210,8 +185,7 @@ begin
   tmr2.Enabled := Aini.ReadBool('YxCisSvr', 'ReBoot', False);
   tmr2.interval := Aini.ReadInteger('YxCisSvr', 'ReBootT', 3) * 1000 * 24 * 60 * 60;
   DeleteFile(ExtractFilePath(ParamStr(0)) + 'ReBoot.cmd');
-
- { if log = nil then // 日志
+ {if log = nil then // 日志
   begin
     log := TSynLog.Add;
     log.Family.DestinationPath := ExtractFilePath(ParamStr(0)) + '\YxCisSvrlog';
@@ -222,8 +196,6 @@ begin
   LogPath := ExtractFilePath(ParamStr(0)) + '\YxCisSvrlog';
   if not DirectoryExists(LogPath) then
     CreateDir(LogPath);
-  if Logs = nil then
-    Logs := TQLog.Create;
   //是否写错误日志
   Logs.BInFree := BDEBUG;
   //设置日志文件
@@ -236,10 +208,6 @@ begin
   if BeginServer then
     FServer.Destroy;
   FreeAndNil(AINI);
-  //FreeAndNil(logList);
-  //DeleteCriticalSection(FSection);
-  if Assigned(Logs) then
-    Freeandnil(Logs);
 end;
 
 procedure TMainForm.btnStartClick(Sender: TObject);
@@ -279,8 +247,9 @@ begin
   BtnStop.Enabled := False;
   FServer.Destroy;
   BeginServer := False;
-  //FreeAndNil(oParams);
- // Mag1.Active := False;
+  if Assigned(oParams) then
+    FreeAndNil(oParams);
+  Mag1.Active := False;
 end;
 
 procedure TMainForm.tmr1Timer(Sender: TObject);

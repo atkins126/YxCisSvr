@@ -10,7 +10,6 @@ interface
 uses
   SysUtils, Classes, IniFiles, HTTPApp, Contnrs, WebReq, SynCommons, SynCrtSock,
   SynWebEnv, msxml, Vcl.ExtCtrls, QLog;
-
 type
   TSynWebRequestHandler = class(TWebRequestHandler);
 
@@ -18,7 +17,7 @@ type
   private
     FOwner: TObject;
     FIniFile: TIniFile;
-    FActive, FHttp: Boolean;
+    FActive, FHttp,FHttpS: Boolean;
     FMaxNum: Integer;
     FRoot, FPort: string;
     FHttpServer: THttpApiServer;
@@ -72,12 +71,13 @@ begin
   try
     FActive := False;
     FHttp := False;
+    FHttpS := False;
     FOwner := AOwner;
     if (FOwner <> nil) and (FOwner.InheritsFrom(TWebRequestHandler)) then
       FReqHandler := TWebRequestHandler(FOwner)
     else
       FReqHandler := GetRequestHandler;
-    FIniFile := TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'YxCisSvr.ini');
+    FIniFile := TIniFile.Create(ChangeFileExt(ParamStr(0), '.ini'));
     FRoot := FIniFile.ReadString('YxCisSvr', 'Root', '');
     if ParamStr(1) <> '' then
       FPort := ParamStr(1)
@@ -85,6 +85,8 @@ begin
       FPort := FIniFile.ReadString('YxCisSvr', 'Port', '8080');
     FHttp := FIniFile.ReadBool('YxCisSvr', 'HttpType', False);
     FMaxNum := FIniFile.ReadInteger('YxCisSvr', 'Pools', 32);
+    FHttpS := FIniFile.ReadBool('YxCisSvr', 'Https', False);
+    if FHttpS then  FPort := '443';
     FReqHandler.MaxConnections := FMaxNum;
     FHttpServer := THttpApiServer.Create(False);
     FHttpServer.AddUrl(StringTOUTF8(FRoot), StringTOUTF8(FPort), False, '+', true);

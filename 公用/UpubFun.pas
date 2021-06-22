@@ -238,11 +238,11 @@ begin
   Result := False;
   try
     try
-      AiniR := TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'YxCisSvr.ini');
+      AiniR := TIniFile.Create(ChangeFileExt(ParamStr(0), '.ini'));
       SID := EnCode(GetCPUIDStr);
-      if AiniR.ReadString('Rigester', 'ID', '') <> SID then
+      if AiniR.ReadString('Register', 'ID', '') <> SID then
         Exit;
-      SDATE := AiniR.ReadString('Rigester', 'Date', '');
+      SDATE := AiniR.ReadString('Register', 'Date', '');
       if SDATE = '' then
         Exit;
 
@@ -280,13 +280,13 @@ begin
       SID := EnCode(GetCPUIDStr);
       Time := GetTime;
       if Time <> 0 then
-        SDATE := FormatDateTime('YYYYMMDD', Time + 365*3)
+        SDATE := FormatDateTime('YYYYMMDD', Time + 365*5)
       else
-        SDATE := FormatDateTime('YYYYMMDD', Now + 365*3);
+        SDATE := FormatDateTime('YYYYMMDD', Now + 365*5);
       SDATE := EnCode(SDATE);
-      AiniR := TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'YxCisSvr.ini');
-      AiniR.WriteString('Rigester', 'ID', SID);
-      AiniR.WriteString('Rigester', 'Date', SDATE);
+      AiniR := TIniFile.Create(ChangeFileExt(ParamStr(0), '.ini'));
+      AiniR.WriteString('Register', 'ID', SID);
+      AiniR.WriteString('Register', 'Date', SDATE);
     except
       Exit;
     end;

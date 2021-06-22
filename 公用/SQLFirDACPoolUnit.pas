@@ -19,7 +19,7 @@ try
 finally
   DACPool.PutCon(FDQuery.Connecttion);
 end;
-QQ:2405414352
+邮箱:2405414352@qq.com
 2021-3
 如有优化 请传一份 。谢谢！
 *********************************************************************************
@@ -37,12 +37,11 @@ uses
 
 type// 数据库类型
   TDBType = (Access, SqlServer, Oracle);
-  //数据库配置 DAC
 
 type
   TDAConfig = class
   private
-  //数据库配置
+    //数据库配置
     ConnectionName: string; //连接驱动名字
     ProviderName: string; //通用驱动
     DBServer: ansistring; //数据源 --数据库服务器IP
@@ -52,10 +51,10 @@ type
     PassWord: ansistring; //密码
     AccessPassWord: string; //Access可能需要数据库密码
     Port: integer; //数据库端口
-  //
+
     DriverName: string; //驱动
     HostName: string; //服务地址
-  //端口配置
+    //端口配置
     TCPPort: Integer; //TCP端口
     HttpPort: Integer; //http 端口
     LoginSrvUser: string; //验证中间层服务登录用户
@@ -75,7 +74,7 @@ type
   public
     constructor Create(DAConfig: TDAConfig); overload;
     destructor Destroy; override;
-  //当前对象是否被使用
+    //当前对象是否被使用
     property UseFlag: boolean read GetUseFlag write SetUseFlag;
     property ConnObj: TFDConnection read FConnObj;
     property AStart: TDateTime read FAStart write FAStart;
@@ -146,9 +145,11 @@ constructor TDACon.Create(DAConfig: TDAConfig);
 var
   str: string;
 begin
-  str := 'DriverID=MSSQL;Server=' + DAConfig.DBServer + ';Database=' + DAConfig.DataBase
-    + ';User_name=' + DAConfig.UserName + ';Password=' + DAConfig.PassWord +
-    ';LoginTimeOut=3';
+  str := 'DriverID=MSSQL;Server=' + DAConfig.DBServer
+    + ';Database=' + DAConfig.DataBase
+    + ';User_name=' + DAConfig.UserName
+    + ';Password=' + DAConfig.PassWord
+    + ';LoginTimeOut=3';
   FConnObj := TFDConnection.Create(nil);
   with FConnObj do
   begin
@@ -204,7 +205,7 @@ constructor TDACPool.Create(const MaxNumBer: Integer; FreeMinutes: Integer = 60;
   TimerTime: Integer = 5000);
 begin
   InitializeCriticalSection(FSection);
-  FPOOLNUMBER := MaxNumBer; //设置池大小
+  FPoolNumber := MaxNumBer; //设置池大小
   FPollingInterval := FreeMinutes; // 连接池中 FPollingInterval 以上没用的 自动回收连接池
   FList := TList.Create;
   FTime := TTimer.Create(nil);
@@ -279,7 +280,7 @@ begin
   //池未满 新建一个
   Enter;
   try
-    if FList.Count < FPOOLNUMBER then //池未满
+    if FList.Count < FPoolNumber then //池未满
     begin
       FDACon := tdacon.Create(tmpConfig);
       FDACon.UseFlag := True;
@@ -317,7 +318,7 @@ begin
     //如果不存在这种字符串的池子 则 一直等到超时
     if CurOutTime >= 5000 * 6 then //1分钟
     begin
-      raise Exception.Create('连接超时!');
+      raise Exception.Create('连接超时！');
       Break;
     end;
     Sleep(500); //0.5秒钟
@@ -408,8 +409,9 @@ end;
 //初始化时创建对象
 
 initialization
-  DAConfig := TDAConfig.Create(ExtractFileDir(ParamStr(0)) + '\YxCisSvr.ini');
+  DAConfig := TDAConfig.Create(ChangeFileExt(ParamStr(0), '.ini'));
   DACPool := TDACPool.Create(PoolNum);
+
 
 finalization
   if Assigned(DACPool) then

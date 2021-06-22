@@ -6,7 +6,7 @@ interface
 
 uses
   InvokeRegistry, Types, XSBuiltIns, SoapIntf, Winapi.Windows, Controls,
-  SynCommons,QLog;
+  SynCommons, QLog;
 
 type
 
@@ -32,6 +32,9 @@ type
     //执行申请单   类型 0：取消执行 1：执行|病人类型 0：门诊 1：住院|病人号|申请单号|组套编码
     function DoPerForm(ILX, IBRLX: Integer; CBRH, CSQDH: string; CDBLX: string =
       ''): string;
+    //拒签申请单  病人类型 0：门诊 1：住院|病人号|申请单号|组套编码|拒签原因|拒签操作员|条码号|拒签编码
+    function DontTransact(IBRLX: Integer; CBRH, CSQDH, CZTBM, CJQYY, CJQCZY,
+      CTMH, CJQBM: string; CDBLX: string = ''): string;
     //报告 操作类型 0取消报告1报告|病人类型 0：门诊 1：住院|病人号|申请单号|组套编码|报告单XML数据
     function WriteReport(ILX, IBRLX: Integer; CBRH, CSQDH, CZTBM, XMLDATA:
       string; CDBLX: string = ''): string;
@@ -42,14 +45,13 @@ type
 implementation
 
 uses
-  uDataYxCisSvr, Winapi.Messages, Forms, Soap.EncdDecd, System.SysUtils;
+  uDataYxCisSvr, Winapi.Messages, Forms, System.SysUtils;
 
 const
   Success_Result = '<Result><Code>1</Code><Info>成功</Info></Result>';
   Success_Info = '<Result><Code>1</Code><Info>@Info@</Info></Result>';
   Fail_Result = '<Result><Code>0</Code><Info>@Info@</Info></Result>';
   WM_HTTPINFO = WM_USER + 203;
-
 
 function TWSYXHis.HelloWorld: string;
 begin
@@ -87,11 +89,11 @@ begin
     Log := Log + #13#10 + Result;
     if POS('<Code>0</Code>', Log) > 0 then
     begin
-      PostLog(llError,Log);
+      PostLog(llError, Log);
       PostMessage(Application.MainForm.Handle, WM_HTTPINFO, 0, 2);
     end
     else
-      PostLog(llMessage,Log);
+      PostLog(llMessage, Log);
   end;
 end;
 
@@ -132,11 +134,11 @@ begin
     Log := Log + #13#10 + Result;
     if POS('<Code>0</Code>', Log) > 0 then
     begin
-      PostLog(llError,Log);
+      PostLog(llError, Log);
       PostMessage(Application.MainForm.Handle, WM_HTTPINFO, 0, 2);
     end
     else
-      PostLog(llMessage,Log);
+      PostLog(llMessage, Log);
   end;
 end;
 
@@ -173,11 +175,11 @@ begin
     Log := Log + #13#10 + Result;
     if POS('<Code>0</Code>', Log) > 0 then
     begin
-      PostLog(llError,Log);
+      PostLog(llError, Log);
       PostMessage(Application.MainForm.Handle, WM_HTTPINFO, 0, 2);
     end
     else
-      PostLog(llMessage,Log);
+      PostLog(llMessage, Log);
   end;
 end;
 
@@ -214,11 +216,11 @@ begin
     Log := Log + #13#10 + Result;
     if POS('<Code>0</Code>', Log) > 0 then
     begin
-      PostLog(llError,Log);
+      PostLog(llError, Log);
       PostMessage(Application.MainForm.Handle, WM_HTTPINFO, 0, 2);
     end
     else
-      PostLog(llMessage,Log);
+      PostLog(llMessage, Log);
 
   end;
 end;
@@ -257,12 +259,55 @@ begin
     Log := Log + #13#10 + Result;
     if POS('<Code>0</Code>', Log) > 0 then
     begin
-      PostLog(llError,Log);
+      PostLog(llError, Log);
       PostMessage(Application.MainForm.Handle, WM_HTTPINFO, 0, 2);
     end
     else
-      PostLog(llMessage,Log);
+      PostLog(llMessage, Log);
 
+  end;
+end;
+
+function TWSYXHIS.DontTransact(IBRLX: Integer; CBRH, CSQDH, CZTBM, CJQYY, CJQCZY,
+  CTMH, CJQBM, CDBLX: string): string;
+var
+  Af: TYXSVR;
+  Log: string;
+begin
+  Log := 'DontTransact:IBRLX=' + IntToStr(IBRLX) + ',CBRH=' + CBRH + ',CSQDH=' +
+    CSQDH + ',CZTBM=' + CZTBM + ',CJQYY=' + CJQYY + ',CJQCZY=' + CJQCZY +
+    ',CTMH=' + CTMH + ',CJQBM=' + CJQBM + ',CDBLX=' + CDBLX;
+  Result := Fail_Result;
+  try
+    try
+      Af := TYXSVR.Create(nil);
+      try
+        if not Af.DontTransact(IBRLX, CBRH, CSQDH, CZTBM, CJQYY, CJQCZY, CTMH,
+          CJQBM, CDBLX) then
+        begin
+          Result := (stringreplace(Fail_Result, '@Info@', Af.AERROR, []));
+          Exit;
+        end;
+        Result := Success_Result;
+      finally
+        freeandnil(Af);
+      end;
+    except
+      on e: exception do
+      begin
+        Result := (stringreplace(Fail_Result, '@Info@', e.message, []));
+        Exit;
+      end;
+    end;
+  finally
+    Log := Log + #13#10 + Result;
+    if POS('<Code>0</Code>', Log) > 0 then
+    begin
+      PostLog(llError, Log);
+      PostMessage(Application.MainForm.Handle, WM_HTTPINFO, 0, 2);
+    end
+    else
+      PostLog(llMessage, Log);
   end;
 end;
 
@@ -298,11 +343,11 @@ begin
     Log := Log + #13#10 + Result;
     if POS('<Code>0</Code>', Log) > 0 then
     begin
-      PostLog(llError,Log);
+      PostLog(llError, Log);
       PostMessage(Application.MainForm.Handle, WM_HTTPINFO, 0, 2);
     end
     else
-      PostLog(llMessage,Log);
+      PostLog(llMessage, Log);
   end;
 end;
 
@@ -339,11 +384,11 @@ begin
     Log := Log + #13#10 + Result;
     if POS('<Code>0</Code>', Log) > 0 then
     begin
-      PostLog(llError,Log);
+      PostLog(llError, Log);
       PostMessage(Application.MainForm.Handle, WM_HTTPINFO, 0, 2);
     end
     else
-      PostLog(llMessage,Log);
+      PostLog(llMessage, Log);
   end;
 end;
 
@@ -378,11 +423,11 @@ begin
     Log := Log + #13#10 + Result;
     if POS('<Code>0</Code>', Log) > 0 then
     begin
-      PostLog(llError,Log);
+      PostLog(llError, Log);
       PostMessage(Application.MainForm.Handle, WM_HTTPINFO, 0, 2);
     end
     else
-      PostLog(llMessage,Log);
+      PostLog(llMessage, Log);
   end;
 end;
 

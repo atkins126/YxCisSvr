@@ -128,8 +128,8 @@ object MainForm: TMainForm
     OnClick = btnStopClick
   end
   object pm1: TPopupMenu
-    Left = 208
-    Top = 38
+    Left = 209
+    Top = 64
     object N1: TMenuItem
       Caption = #24320#22987#26381#21153
       OnClick = N1Click
@@ -157,5 +157,12 @@ object MainForm: TMainForm
     OnTimer = tmr2Timer
     Left = 181
     Top = 64
+  end
+  object Mag1: TFDManager
+    FormatOptions.AssignedValues = [fvMapRules]
+    FormatOptions.OwnMapRules = True
+    FormatOptions.MapRules = <>
+    Left = 209
+    Top = 38
   end
 end

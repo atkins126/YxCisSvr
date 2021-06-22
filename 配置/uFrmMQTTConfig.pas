@@ -45,22 +45,9 @@ type
   private
     procedure ReadConfig;
     function BSTATUS(ISTATUS: Boolean): boolean;
-    procedure SetMQTTStatus;
     { Private declarations }
   public
     YxSCKTINI:string;
-    procedure OnSocketConnect(Sender: TObject;Connected:Boolean);
-    procedure OnConnAck(Sender: TObject; ReturnCode: integer);
-    procedure OnPubAck(Sender: TObject; MsgId:Word);
-    procedure OnPubRec(Sender: TObject; MsgId:Word);
-    procedure OnPubRel(Sender: TObject; MsgId:Word);
-    procedure OnPubComp(Sender: TObject; MsgId:Word);
-    procedure OnSubAck(Sender: TObject; MessageID: integer; GrantedQoS: Integer);
-    procedure OnPublish(Sender: TObject;const msg:TRecvPublishMessage);
-                       //Qos:TQosLevel;MsgID:Word;Retain:Boolean;const topic, payload: AnsiString);
-    procedure OnPingResp(Sender: TObject);
-    procedure OnUnSubAck(Sender: TObject; MsgId:Word);
-    procedure OnDisConnect(Sender: TObject);
     { Public declarations }
   end;
 
@@ -137,28 +124,28 @@ end;
 
 procedure TFrmMQTTConfig.ReadConfig;
 var
-  Inifile: TIniFile;
+  Aini: TIniFile;
 begin
-  YxSCKTINI := ExtractFileDir(ParamStr(0)) + '\YxCisSvr.ini';
+  YxSCKTINI := ChangeFileExt(ParamStr(0), '.ini');
   if FileExists(YxSCKTINI) then
   begin
-    Inifile := TIniFile.Create(YxSCKTINI);
+    Aini := TIniFile.Create(YxSCKTINI);
     try
-      EdtServer.Text := Inifile.ReadString('MQTT', 'Server', '');
-      EdtClientId.Text := Inifile.ReadString('MQTT', 'ClientID', '');
-      EdtUserName.Text := Inifile.ReadString('MQTT', 'User', '');
-      EdtPass.Text := Inifile.ReadString('MQTT', 'Pass', '');
-      EdtSub.Text := Inifile.ReadString('MQTT', 'SubTopic', '');
-      EdtPub.Text := Inifile.ReadString('MQTT', 'PubTopic', '');
-      ckSub.CHECKED := Inifile.ReadBool('MQTT', 'BSub', False);
-      ckRetain.CHECKED := Inifile.ReadBool('MQTT', 'Retain', False);
-      ckReConnect.CHECKED := Inifile.ReadBool('MQTT', 'ReConnect', False);
-      ckclearsession.CHECKED := Inifile.ReadBool('MQTT', 'ClearSession', False);
-      ckAutoPing.CHECKED := Inifile.ReadBool('MQTT', 'AutoPing', False);
-      cbbSubQos.ItemIndex := Inifile.ReadInteger('MQTT', 'Qos', -1);
-      CKMQTT.CHECKED := Inifile.ReadBool('MQTT', 'BMQTT', false);
+      EdtServer.Text := Aini.ReadString('MQTT', 'Server', '');
+      EdtClientId.Text := Aini.ReadString('MQTT', 'ClientID', '');
+      EdtUserName.Text := Aini.ReadString('MQTT', 'User', '');
+      EdtPass.Text := Aini.ReadString('MQTT', 'Pass', '');
+      EdtSub.Text := Aini.ReadString('MQTT', 'SubTopic', '');
+      EdtPub.Text := Aini.ReadString('MQTT', 'PubTopic', '');
+      ckSub.CHECKED := Aini.ReadBool('MQTT', 'BSub', False);
+      ckRetain.CHECKED := Aini.ReadBool('MQTT', 'Retain', False);
+      ckReConnect.CHECKED := Aini.ReadBool('MQTT', 'ReConnect', False);
+      ckclearsession.CHECKED := Aini.ReadBool('MQTT', 'ClearSession', False);
+      ckAutoPing.CHECKED := Aini.ReadBool('MQTT', 'AutoPing', False);
+      cbbSubQos.ItemIndex := Aini.ReadInteger('MQTT', 'Qos', -1);
+      CKMQTT.CHECKED := Aini.ReadBool('MQTT', 'BMQTT', false);
     finally
-      FreeAndNil(Inifile);
+      FreeAndNil(Aini);
     end;
   end;
 end;
@@ -181,133 +168,6 @@ begin
     end;
   end;
 
-end;
-
-
-procedure TFrmMQTTConfig.OnConnAck(Sender: TObject; ReturnCode: integer);
-  function ReturnCodeToStr():string;
-  begin
-    case ReturnCode of
-      0: Result := 'OK';
-      1: Result := 'ConnectAckState';
-      2: Result := 'InvalidClientID';
-      3: Result := 'Serverunavailable';
-      4: Result := 'InvalidUserOrPassWord';
-      5: Result := 'NoAuthorizd';
-      else
-        Result := 'Unknown';
-    end;
-  end;
-begin
-  {WriteLog('OnConnAck ReturnCode=' + IntToStr(ReturnCode) + ',Status=' + ReturnCodeToStr());
-  if ReturnCode = 0 then
-  begin
-    Connect.Enabled := FALSE;
-  end;  }
-end;
-
-procedure TFrmMQTTConfig.OnDisConnect(Sender: TObject);
-var
-  Msg:string;
-  Obj:TMQTTClient;
-begin
-  Obj := Sender as TMQTTClient;
-  Msg := Format('OnDisConnect...,UserCancel[%s],ErrDesc[%s]',[
-                 BoolToStr(Obj.UserCancelSocket,true),
-                 Obj.ErrDesc]);
-  //gConnectError :=  Obj.ErrDesc <> '';
-  //WriteLog(Msg);
-
-end;
-
-procedure TFrmMQTTConfig.OnPingResp(Sender: TObject);
-begin
-  //WriteLog('OnPingResp');
-end;
-
-procedure TFrmMQTTConfig.OnPubAck(Sender: TObject; MsgId: Word);
-begin
-  //WriteLog('OnPubAck MsgId=' + IntToStr(MsgId));
-end;
-
-procedure TFrmMQTTConfig.OnPubComp(Sender: TObject; MsgId: Word);
-begin
-  //WriteLog('OnPubComp MsgId=' + IntToStr(MsgId));
-end;
-
-procedure TFrmMQTTConfig.OnPublish(Sender: TObject;
-  const msg: TRecvPublishMessage);
-var
-  Text:string;
-  MsgContent:AnsiString;
-begin
-  {if cb_utf8.Checked then
-     MsgContent := Utf8ToAnsi(msg.MsgContent)
-  else  }
-  MsgContent := UTF8Decode(msg.MsgContent);
-  Text := format('OnPublish,Dup=%s,Qos=%d,MsgID[%d],Retain[%s],Topic=%s,payload=%s',
-                [BoolToStr(msg.Dup,TRUE),
-                 Integer(msg.Qos),
-                 msg.MsgID,
-                 BoolToStr(msg.Retain,TRUE),
-                 msg.topic,
-                 msg.MsgContent]);
-  showmessage(msg.MsgContent);
-  //WriteLog(Text);
-end;
-
-procedure TFrmMQTTConfig.OnPubRec(Sender: TObject; MsgId: Word);
-begin
-  //WriteLog('OnPubRec MsgId=' + IntToStr(MsgId));
-end;
-
-procedure TFrmMQTTConfig.OnPubRel(Sender: TObject; MsgId: Word);
-begin
-  //WriteLog('OnPubRel MsgId=' + IntToStr(MsgId));
-end;
-
-procedure TFrmMQTTConfig.OnSocketConnect(Sender: TObject;
-  Connected: Boolean);
-var
-  Msg:string;
-  Obj :TMQTTClient;
-begin
-  Obj := Sender as TMQTTClient;
-  Msg := Format('OnSocketConnect,Connected[%s],ErrDesc[%s]',[
-                BoolToStr(Connected,TRUE),
-                Obj.ErrDesc]);
- // WriteLog(Msg);
-end;
-procedure TFrmMQTTConfig.OnSubAck(Sender: TObject; MessageID,
-  GrantedQoS: Integer);
-var
-  Msg:string;
-begin
-  Msg := Format('OnSubAck MsgId=%d,GrantedQoS=%d',[MessageID,GrantedQoS]);
-  //WriteLog(Msg);
-end;
-
-procedure TFrmMQTTConfig.OnUnSubAck(Sender: TObject; MsgId: Word);
-var
-  Msg:string;
-begin
-  Msg := Format('OnUnSubAck,MsgId=%d',[MsgId]);
-  //WriteLog(Msg);
-end;
-
-procedure TFrmMQTTConfig.SetMQTTStatus;
-begin
-  MQ.OnFConnAck := OnConnAck;
-  MQ.OnPubAck   := OnPubAck;
-  MQ.OnPubRec   := OnPubRec;
-  MQ.OnPubRel   := OnPubRel;
-  MQ.OnPubComp  := OnPubComp;
-  MQ.onSubAck   := OnSubAck;
-  MQ.OnUnSubAck := OnUnSubAck;
-  MQ.OnPublish  := OnPublish;
-  MQ.OnPingResp := OnPingResp;
-  MQ.OnSocketConnect := OnSocketConnect;
-  MQ.OnDisConnect    := OnDisConnect;
 end;
 
 end.
