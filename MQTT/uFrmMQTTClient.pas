@@ -16,22 +16,18 @@ type
     EdtPubTopic: TEdit;
     lbl2: TLabel;
     lbl1: TLabel;
-    btnPing: TButton;
     mmo1: TMemo;
-    Connect: TBitBtn;
-    DisConnect: TBitBtn;
     stat1: TStatusBar;
     lbl3: TLabel;
     EdtSubTopic: TEdit;
     btnSub: TButton;
     btnDisSub: TButton;
     procedure btnPublishClick(Sender: TObject);
-    procedure ConnectClick(Sender: TObject);
-    procedure DisConnectClick(Sender: TObject);
     procedure SetMQTTStatus;
     procedure FormCreate(Sender: TObject);
     procedure btnSubClick(Sender: TObject);
     procedure btnDisSubClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     procedure WriteLog(const Msg: string);
     procedure MSG_Log(var message:TMessage); message WM_WRITE_LOG;
@@ -88,19 +84,6 @@ begin
 end;
 
 
-procedure TFrmMQTTClient.ConnectClick(Sender: TObject);
-begin
-  GetMQTT;
-  if MQ.Connected then
-    Stat1.Panels[0].Text := '连接时间: ' + FormatDateTime('YYYY-MM-DD hh:mm:ss',Now());
-end;
-
-procedure TFrmMQTTClient.DisConnectClick(Sender: TObject);
-begin
-  if MQ.Connected then
-    MQ.DisConnect;
-end;
-
 procedure TFrmMQTTClient.FormCreate(Sender: TObject);
 begin
   SetMQTTStatus;
@@ -112,6 +95,23 @@ begin
   {$IFEND}
   //
   Stat1.Panels[2].Text := MQ.ComponmentVersion;
+  if MQ.Connected then
+  Stat1.Panels[0].Text := '连接时间: ' + FormatDateTime('YYYY-MM-DD hh:mm:ss',Now());
+end;
+
+procedure TFrmMQTTClient.FormDestroy(Sender: TObject);
+begin
+  MQ.OnFConnAck := nil;
+  MQ.OnPubAck   := nil;
+  MQ.OnPubRec   := nil;
+  MQ.OnPubRel   := nil;
+  MQ.OnPubComp  := nil;
+  MQ.onSubAck   := nil;
+  MQ.OnUnSubAck := nil;
+  MQ.OnPublish  := MQ.OnPrePublish;
+  MQ.OnPingResp := nil;
+  MQ.OnSocketConnect := nil;
+  MQ.OnDisConnect    := nil;
 end;
 
 procedure TFrmMQTTClient.MSG_Log(var message: TMessage);
@@ -125,6 +125,7 @@ end;
 
 procedure TFrmMQTTClient.WriteLog(const Msg: string);
 begin
+  if not assigned(mmLog) then Exit;
   if mmLog.Lines.Count > 2048 then
     mmLog.Lines.Clear();
   SendMessage(Handle,WM_WRITE_LOG,WPARAM(@Msg),0);
@@ -146,10 +147,6 @@ procedure TFrmMQTTClient.OnConnAck(Sender: TObject; ReturnCode: integer);
   end;
 begin
   WriteLog('OnConnAck ReturnCode=' + IntToStr(ReturnCode) + ',Status=' + ReturnCodeToStr());
-  if ReturnCode = 0 then
-  begin
-    Connect.Enabled := FALSE;
-  end;
 end;
 
 procedure TFrmMQTTClient.OnDisConnect(Sender: TObject);
@@ -168,8 +165,6 @@ begin
   begin
     WriteLog('OnDisConnect...ReConnect-----AutoReConnect,延迟 :' + IntToStr(Obj.AutoReConnectDelaySec) + '秒后重连');
   end;
-
-  Connect.Enabled := not MQ.AutoReConnect;
 
 end;
 
@@ -230,10 +225,7 @@ begin
                 Obj.ErrDesc]);
   WriteLog(Msg);
   //
-  Self.Connect.Enabled := FALSE;
-  Self.DisConnect.Enabled := TRUE;
   Self.btnPublish.Enabled := TRUE;
-  Self.btnPing.Enabled := TRUE;
 end;
 procedure TFrmMQTTClient.OnSubAck(Sender: TObject; MessageID,
   GrantedQoS: Integer);

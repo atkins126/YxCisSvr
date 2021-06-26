@@ -135,19 +135,19 @@ end;
 
 procedure TFrmSQLConnect.ReadConfig;
 var
-  Inifile: TIniFile;
+  Aini: TIniFile;
 begin
-  YxSCKTINI := ExtractFileDir(ParamStr(0)) + '\YxCisSvr.ini';
+  YxSCKTINI := ChangeFileExt(ParamStr(0), '.ini');
   if FileExists(YxSCKTINI) then
   begin
-    Inifile := TIniFile.Create(YxSCKTINI);
+    Aini := TIniFile.Create(YxSCKTINI);
     try
-      EdtServer.Text := DeCode(Inifile.ReadString('DB', 'Server', ''));
-      EdtDBName.Text := DeCode(Inifile.ReadString('DB', 'DataBase', ''));
-      EdtUserName.Text := DeCode(Inifile.ReadString('DB', 'UserName', ''));
-      EdtPass.Text := DeCode(Inifile.ReadString('DB', 'PassWord', ''));
+      EdtServer.Text := DeCode(Aini.ReadString('DB', 'Server', ''));
+      EdtDBName.Text := DeCode(Aini.ReadString('DB', 'DataBase', ''));
+      EdtUserName.Text := DeCode(Aini.ReadString('DB', 'UserName', ''));
+      EdtPass.Text := DeCode(Aini.ReadString('DB', 'PassWord', ''));
     finally
-      FreeAndNil(Inifile);
+      FreeAndNil(Aini);
     end;
   end;
 end;
